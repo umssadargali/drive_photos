@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Drive Gallery</title>
+    <style>
+        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+        .gallery img { width: 100%; height: 200px; object-fit: cover; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <h1>My Photo Gallery</h1>
+    <div id="photos" class="gallery">Loading photos...</div>
+
+    <script>
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbxoyy2FscwKbVc5d92Z4v4vCRxZjKBiFy2BnHLfx0mT23iPKnlVRzD6uAeZ3rWy22bT/exec';
+        
+        fetch(scriptURL)
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('photos');
+                container.innerHTML = '';
+                data.forEach(photo => {
+                    const img = document.createElement('img');
+                    img.src = photo.url;
+                    container.appendChild(img);
+                });
+            })
+            .catch(error => console.error('Error!', error));
+    </script>
+</body>
+</html>
