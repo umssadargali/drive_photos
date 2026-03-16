@@ -3,110 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Drive Photo Gallery</title>
+    <title>Smart Photo Gallery</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
-        h1 { text-align: center; color: #333; }
-
-        /* Grid Layout */
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f0f2f5; }
+        header { background: #fff; padding: 20px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        
+        /* Grid System */
         .gallery {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px;
-            padding: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+            padding: 15px;
+            max-width: 1200px;
+            margin: auto;
         }
 
-        .gallery img {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-            border-radius: 10px;
+        .img-card {
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            height: 180px;
             cursor: pointer;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
         }
 
-        .gallery img:hover {
-            transform: scale(1.05);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        .img-card:hover { transform: scale(1.03); }
+
+        .img-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
         }
 
-        /* Modal (Zoom System) */
+        /* Zoom Modal */
         .modal {
             display: none;
             position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
             z-index: 1000;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.9);
             justify-content: center;
             align-items: center;
+            flex-direction: column;
         }
 
-        .modal-content {
-            max-width: 90%;
-            max-height: 80%;
+        .modal img {
+            max-width: 95%;
+            max-height: 85%;
             border-radius: 5px;
-            animation: zoomIn 0.3s;
+            box-shadow: 0 0 20px rgba(255,255,255,0.2);
         }
 
-        @keyframes zoomIn {
-            from {transform: scale(0.5)} to {transform: scale(1)}
-        }
-
-        .close {
+        .close-btn {
             position: absolute;
-            top: 20px; right: 35px;
-            color: white;
-            font-size: 40px;
-            font-weight: bold;
-            cursor: pointer;
+            top: 20px; right: 20px;
+            color: white; font-size: 35px; cursor: pointer;
         }
     </style>
 </head>
 <body>
 
-    <h1>Photo Gallery</h1>
-    <div id="photos" class="gallery">Loading photos...</div>
+<header>
+    <h1>Gallery</h1>
+</header>
 
-    <div id="myModal" class="modal">
-        <span class="close">&times;</span>
-        <img class="modal-content" id="img01">
+<div class="gallery" id="gallery">
     </div>
 
-    <script>
-        // Apne Apps Script ka Web App URL yahan paste karein
-        const scriptURL = 'https://script.google.com/macros/s/AKfycbxoyy2FscwKbVc5d92Z4v4vCRxZjKBiFy2BnHLfx0mT23iPKnlVRzD6uAeZ3rWy22bT/exec';
-        const modal = document.getElementById("myModal");
-        const modalImg = document.getElementById("img01");
-        const span = document.getElementsByClassName("close")[0];
+<div id="photoModal" class="modal" onclick="this.style.display='none'">
+    <span class="close-btn">&times;</span>
+    <img id="fullImg" src="">
+</div>
 
-        fetch(scriptURL)
-            .then(response => response.json())
-            .then(data => {
-                const container = document.getElementById('photos');
-                container.innerHTML = '';
+<script>
+    // 1. Apna Apps Script URL yahan daalein
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbzzTJzyr2zTmvndAcUQPWyWQw5zjKFP4R1S_Kl86KetOcA91ZeQ_UDZ3AZCbN-G59Ul/exec';
+
+    async function loadGallery() {
+        const container = document.getElementById('gallery');
+        try {
+            const response = await fetch(scriptURL);
+            const data = await response.json();
+            
+            if (data.length === 0) {
+                container.innerHTML = "<p style='text-align:center'>Folder khali hai!</p>";
+                return;
+            }
+
+            container.innerHTML = ''; // Loading text hatayein
+            
+            data.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'img-card';
                 
-                data.forEach(photo => {
-                    const img = document.createElement('img');
-                    img.src = photo.url;
-                    img.alt = photo.name;
-                    // Click karne par zoom hone wala function
-                    img.onclick = function() {
-                        modal.style.display = "flex";
-                        modalImg.src = this.src;
-                    }
-                    container.appendChild(img);
-                });
-            })
-            .catch(error => {
-                console.error('Error!', error);
-                document.getElementById('photos').innerHTML = "Photos load nahi ho pa rahi hain.";
-            });
+                const img = document.createElement('img');
+                img.src = item.url;
+                img.loading = "lazy"; // Better performance
+                img.onclick = (e) => {
+                    e.stopPropagation();
+                    showZoom(item.url);
+                };
 
-        // Modal band karne ke liye
-        span.onclick = function() { modal.style.display = "none"; }
-        modal.onclick = function(e) { if(e.target !== modalImg) modal.style.display = "none"; }
-    </script>
+                div.appendChild(img);
+                container.appendChild(div);
+            });
+        } catch (error) {
+            container.innerHTML = "<p>Photos load nahi ho saki. Check console.</p>";
+            console.error(error);
+        }
+    }
+
+    function showZoom(url) {
+        document.getElementById('photoModal').style.display = 'flex';
+        document.getElementById('fullImg').src = url;
+    }
+
+    // Initialize
+    loadGallery();
+</script>
+
 </body>
 </html>
