@@ -107,10 +107,10 @@
             const response = await fetch(scriptURL);
             const data = await response.json();
             
-            // YAHAN HAI FIX: Code.gs badle bina hum URL format ko yahan change kar rahe hain
+            // FIX: Purane Code.gs ke URL ko direct secure format mein badalna
             allPhotos = data.map(item => {
                 let fileId = "";
-                // URL se ID nikaalne ka logic
+                // Sabse pehle 'id=' dhoondte hain, agar nahi toh last part '/' ke baad wala
                 if(item.url.includes("id=")) {
                     fileId = item.url.split("id=")[1];
                 } else {
@@ -118,9 +118,9 @@
                 }
                 
                 return {
-                    ...item,
-                    // Universal format jo WebView block nahi karta
-                    url: "https://drive.google.com/uc?export=download&id=" + fileId
+                    "name": item.name,
+                    // Universal HTTPS format jo WebView ke liye best hai
+                    "url": "https://drive.google.com/uc?export=download&id=" + fileId
                 };
             });
 
@@ -139,17 +139,20 @@
                 const img = document.createElement('img');
                 img.src = item.url;
                 img.loading = "lazy";
-                // WebView Broken icon fix
+                
+                // WebView error handle karne ke liye
                 img.onerror = function() {
-                    this.src = 'https://cdn-icons-png.flaticon.com/512/16/16410.png'; // Fallback icon
+                    console.log("Image load failed for ID: " + item.url);
+                    this.src = 'https://cdn-icons-png.flaticon.com/512/16/16410.png'; // Fallback generic photo
                 };
+
                 img.onclick = () => openModal(index);
 
                 div.appendChild(img);
                 container.appendChild(div);
             });
         } catch (error) {
-            loader.innerHTML = "Connection Error! Check Internet.";
+            loader.innerHTML = "Photos load nahi ho saki. Check Internet.";
         }
     }
 
@@ -174,8 +177,19 @@
 
     // Modal click settings
     document.getElementById('photoModal').onclick = function(e) {
-        if (e.target.className === 'modal') closeModal();
+        if (e.target.className === 'modal' || e.target.className === 'close-btn') {
+            closeModal();
+        }
     };
+
+    // Keyboard support
+    document.addEventListener('keydown', function(e) {
+        if (document.getElementById('photoModal').style.display === 'flex') {
+            if (e.key === "ArrowLeft") changePhoto(-1);
+            if (e.key === "ArrowRight") changePhoto(1);
+            if (e.key === "Escape") closeModal();
+        }
+    });
 
     loadGallery();
 </script>
