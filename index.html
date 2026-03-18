@@ -3,24 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>School Photo Gallery</title>
+    <title>Academic Gallery</title>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: sans-serif; margin: 0; background: #f4f7f6; overflow-x: hidden; }
-        header { background: #ffffff; padding: 15px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
-        h1 { margin: 0; font-size: 1.2rem; color: #333; }
-        
-        .gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 12px; max-width: 900px; margin: auto; }
-        .img-card { background: #fff; border-radius: 12px; overflow: hidden; aspect-ratio: 1/1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border: 1px solid #eee; cursor: pointer; }
+        body { font-family: sans-serif; margin: 0; background: #f0f2f5; }
+        header { background: #fff; padding: 15px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+        h1 { margin: 0; font-size: 1.1rem; color: #333; }
+        .gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px; }
+        .img-card { background: #fff; border-radius: 10px; overflow: hidden; aspect-ratio: 1/1; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .img-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
-
-        /* Full Screen View */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; justify-content: center; align-items: center; }
         .modal img { max-width: 100%; max-height: 90%; object-fit: contain; }
-        .close-btn { position: absolute; top: 20px; right: 20px; color: #fff; font-size: 40px; cursor: pointer; z-index: 1001; }
-        .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); color: #fff; font-size: 50px; padding: 20px; background: rgba(0,0,0,0.3); border-radius: 50%; user-select: none; }
-        .prev { left: 10px; } .next { right: 10px; }
-        #loader { text-align: center; padding: 50px; font-weight: bold; color: #555; }
+        .close-btn { position: absolute; top: 15px; right: 20px; color: #fff; font-size: 35px; }
+        #loader { text-align: center; padding: 40px; color: #666; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -30,32 +25,22 @@
 <div class="gallery" id="gallery"></div>
 
 <div id="photoModal" class="modal">
-    <span class="close-btn" onclick="closeModal()">&times;</span>
-    <div class="nav-btn prev" onclick="changePhoto(-1)">&#10094;</div>
+    <span class="close-btn" onclick="closeModal()">×</span>
     <img id="fullImg" src="">
-    <div class="nav-btn next" onclick="changePhoto(1)">&#10095;</div>
 </div>
 
 <script>
-    // 1. APNA NAYA APPS SCRIPT URL YAHAN REPLACE KAREIN
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbwo_Lv8Hzcnay0CQk204Z5MYk-BqiB0fe98Rl8AMQcbvjIflg7irNWbNUqO78NLglD1/exec';
+    // APNA NAYA APPS SCRIPT URL YAHAN DALEIN
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbyGpVibNA_QTjhZx0H5NNe3lzBkdJZkCzQycAwwHmM_m4Ii_1h9rb3iRrQzzJlAOeg/exec';
     
     let allPhotos = [];
-    let currentIndex = 0;
 
     async function loadGallery() {
-        const container = document.getElementById('gallery');
-        const loader = document.getElementById('loader');
         try {
             const response = await fetch(scriptURL);
             allPhotos = await response.json();
-            
-            if (allPhotos.length === 0) {
-                loader.innerHTML = "Folder khali hai!";
-                return;
-            }
-
-            loader.style.display = 'none';
+            const container = document.getElementById('gallery');
+            document.getElementById('loader').style.display = 'none';
             container.innerHTML = '';
             
             allPhotos.forEach((item, index) => {
@@ -63,24 +48,17 @@
                 div.className = 'img-card';
                 const img = document.createElement('img');
                 img.src = item.url;
-                img.loading = "lazy";
-                img.onclick = () => openModal(index);
+                img.onclick = () => {
+                    document.getElementById('fullImg').src = item.url;
+                    document.getElementById('photoModal').style.display = 'flex';
+                };
                 div.appendChild(img);
                 container.appendChild(div);
             });
-        } catch (e) {
-            loader.innerHTML = "Error: Internet check karein!";
-        }
+        } catch (e) { document.getElementById('loader').innerHTML = "Error loading photos."; }
     }
 
-    function openModal(i) { currentIndex = i; document.getElementById('photoModal').style.display = 'flex'; update(); }
     function closeModal() { document.getElementById('photoModal').style.display = 'none'; }
-    function update() { document.getElementById('fullImg').src = allPhotos[currentIndex].url; }
-    function changePhoto(s) { currentIndex = (currentIndex + s + allPhotos.length) % allPhotos.length; update(); }
-
-    // Click outside to close
-    document.getElementById('photoModal').onclick = function(e) { if(e.target.className === 'modal') closeModal(); };
-
     loadGallery();
 </script>
 </body>
