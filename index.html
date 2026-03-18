@@ -6,77 +6,77 @@
     <title>Academic Gallery</title>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: sans-serif; margin: 0; background: #f0f2f5; }
+        body { font-family: sans-serif; margin: 0; background: #f0f2f5; overflow-x: hidden; }
         header { background: #fff; padding: 15px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
         h1 { margin: 0; font-size: 1.1rem; color: #333; }
         
-        /* Gallery Grid */
-        .gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px; }
-        .img-card { background: #fff; border-radius: 10px; overflow: hidden; aspect-ratio: 1/1; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #ddd; }
+        /* Gallery Grid for 2 Columns */
+        .gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 12px; max-width: 900px; margin: auto; }
+        .img-card { background: #fff; border-radius: 10px; overflow: hidden; aspect-ratio: 1/1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border: 1px solid #eee; cursor: pointer; }
         .img-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-        /* Modal (Full Screen) */
+        /* Full Screen View Modal */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; justify-content: center; align-items: center; }
-        .modal img { max-width: 100%; max-height: 85%; object-fit: contain; }
+        .modal img { max-width: 100%; max-height: 90%; object-fit: contain; }
         
-        /* Buttons Design */
-        .close-btn { position: absolute; top: 20px; right: 20px; color: #fff; font-size: 40px; cursor: pointer; z-index: 1002; line-height: 1; }
-        
-        .nav-btn { 
-            position: absolute; top: 50%; transform: translateY(-50%); 
-            color: #fff; font-size: 45px; padding: 20px; 
-            background: rgba(255,255,255,0.1); border-radius: 50%; 
-            user-select: none; cursor: pointer; z-index: 1001;
-            transition: background 0.3s;
-        }
-        .nav-btn:active { background: rgba(255,255,255,0.3); }
-        .prev { left: 5px; } 
-        .next { right: 5px; }
-
-        #loader { text-align: center; padding: 40px; color: #666; font-weight: bold; }
+        /* Buttons design */
+        .close-btn { position: absolute; top: 15px; right: 20px; color: #fff; font-size: 40px; cursor: pointer; z-index: 1002; }
+        .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); color: #fff; font-size: 50px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 50%; user-select: none; cursor: pointer; z-index: 1001; }
+        .prev { left: 10px; } .next { right: 10px; }
+        #loading { text-align: center; padding: 50px; font-weight: bold; color: #666; }
     </style>
 </head>
 <body>
 
-<header><h1>Academic Gallery</h1></header>
-<div id="loader">Photos load ho rahi hain...</div>
+<header><h1>School Academic Gallery</h1></header>
+<div id="loading">Photos loading...</div>
 <div class="gallery" id="gallery"></div>
 
 <div id="photoModal" class="modal">
     <span class="close-btn" onclick="closeModal()">×</span>
-    
     <div class="nav-btn prev" onclick="changePhoto(-1)">❮</div>
-    
     <img id="fullImg" src="" onclick="event.stopPropagation()">
-    
     <div class="nav-btn next" onclick="changePhoto(1)">❯</div>
 </div>
 
 <script>
-    // 1. Aapka Working Script URL
+    // 1. Aapka current Apps Script URL (Bina Badle)
     const scriptURL = 'https://script.google.com/macros/s/AKfycbwswuBoNcTbesQZqxXURnB7rRY8dMClsTZerR83VzsMw1lxbatqigI9gHborj1SImlM/exec'; 
     
     let allPhotos = [];
     let currentIndex = 0;
 
     async function loadGallery() {
+        const container = document.getElementById('gallery');
+        const loader = document.getElementById('loading');
         try {
             const response = await fetch(scriptURL);
             const data = await response.json();
             
-            // Purane http ko secure https mein convert karna
-            allPhotos = data.map(item => ({
-                "name": item.name,
-                "url": item.url.replace('http://', 'https://')
-            }));
+            // WebView Fix Logic (SABSE ZAROORI PART)
+            allPhotos = data.map(item => {
+                let fileId = "";
+                // URL se ID nikaalne ka logic. Code.gs link is like: .../picture/0[FILE_ID]
+                if(item.url.includes("picture/0")) {
+                    fileId = item.url.split("picture/0")[1];
+                } else {
+                    // Agar link standard format mein nahi hai toh aakhri part try karein
+                    fileId = item.url.split("/").pop();
+                }
+                
+                return {
+                    "name": item.name,
+                    // 'googleusercontent' links block ho rahe hain, hum use explicit secure format mein convert karenge
+                    "url": "https://drive.google.com/uc?export=download&id=" + fileId
+                };
+            });
 
             if (allPhotos.length === 0) {
-                document.getElementById('loader').innerHTML = "Folder khali hai!";
+                loader.innerHTML = "Folder khali hai!";
                 return;
             }
 
-            document.getElementById('loader').style.display = 'none';
-            const container = document.getElementById('gallery');
+            loader.style.display = 'none';
             container.innerHTML = '';
             
             allPhotos.forEach((item, index) => {
@@ -86,17 +86,21 @@
                 img.src = item.url;
                 img.loading = "lazy";
                 
+                // Agar phir bhi load na ho toh generic photo dikhaye broken ke jagah
+                img.onerror = function() {
+                    this.src = 'https://cdn-icons-png.flaticon.com/512/16/16410.png'; 
+                };
+
                 img.onclick = () => openModal(index);
-                
                 div.appendChild(img);
                 container.appendChild(div);
             });
-        } catch (e) { 
-            document.getElementById('loader').innerHTML = "Error loading photos. Internet check karein."; 
+        } catch (e) {
+            loader.innerHTML = "Internet connectivity check karein.";
         }
     }
 
-    // Modal Controls
+    // Modal Control Functions
     function openModal(index) {
         currentIndex = index;
         document.getElementById('photoModal').style.display = 'flex';
@@ -109,31 +113,18 @@
 
     function updateModalImage() {
         const fullImg = document.getElementById('fullImg');
-        // Loading animation feel ke liye purani image clear karein
-        fullImg.style.opacity = "0.5";
         fullImg.src = allPhotos[currentIndex].url;
-        fullImg.onload = () => { fullImg.style.opacity = "1"; };
     }
 
     function changePhoto(step) {
-        // Next/Prev logic
         currentIndex = (currentIndex + step + allPhotos.length) % allPhotos.length;
         updateModalImage();
     }
 
-    // Modal par click hone se close ho jaye (sirf image chhod kar)
+    // Close Modal on background click
     document.getElementById('photoModal').onclick = function(e) {
-        if (e.target.className === 'modal') closeModal();
+        if (e.target.className === 'modal' || e.target.className === 'close-btn') closeModal();
     };
-
-    // Keyboard support (agar koi browser mein chala raha ho)
-    document.addEventListener('keydown', (e) => {
-        if (document.getElementById('photoModal').style.display === 'flex') {
-            if (e.key === "ArrowLeft") changePhoto(-1);
-            if (e.key === "ArrowRight") changePhoto(1);
-            if (e.key === "Escape") closeModal();
-        }
-    });
 
     loadGallery();
 </script>
