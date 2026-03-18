@@ -9,21 +9,27 @@
         body { font-family: sans-serif; margin: 0; background: #f0f2f5; overflow-x: hidden; }
         header { background: #fff; padding: 15px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
         h1 { margin: 0; font-size: 1.1rem; color: #333; }
+        
+        /* Photo Grid */
         .gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px; max-width: 900px; margin: auto; }
         .img-card { background: #fff; border-radius: 10px; overflow: hidden; aspect-ratio: 1/1; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #ddd; }
         .img-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+        /* Full Screen Modal */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; justify-content: center; align-items: center; }
         .modal img { max-width: 100%; max-height: 85%; object-fit: contain; }
-        .close-btn { position: absolute; top: 20px; right: 20px; color: #fff; font-size: 40px; cursor: pointer; }
-        .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); color: #fff; font-size: 45px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 50%; cursor: pointer; z-index: 1001; }
+        
+        .close-btn { position: absolute; top: 20px; right: 20px; color: #fff; font-size: 40px; cursor: pointer; z-index: 1002; }
+        .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); color: #fff; font-size: 50px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 50%; cursor: pointer; z-index: 1001; user-select: none; }
         .prev { left: 10px; } .next { right: 10px; }
-        #loader { text-align: center; padding: 40px; color: #666; font-weight: bold; }
+        
+        #loader { text-align: center; padding: 50px; color: #666; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <header><h1>Academic Gallery</h1></header>
-<div id="loader">Photos connect ho rahi hain...</div>
+<div id="loader">Server se connect ho raha hai...</div>
 <div class="gallery" id="gallery"></div>
 
 <div id="photoModal" class="modal">
@@ -34,6 +40,7 @@
 </div>
 
 <script>
+    // Aapka Naya Script URL
     const scriptURL = 'https://script.google.com/macros/s/AKfycbzZRbhRHHMuPQOSgpVBApDLmWZXSaLiom5ut3VPbq2ABVpUtOuP_GqS2-kDzR3GL00D/exec'; 
     
     let allPhotos = [];
@@ -42,20 +49,25 @@
     async function loadGallery() {
         const loader = document.getElementById('loader');
         try {
-            // Hum direct fetch nahi karenge, Proxy use karenge (Bina Code.gs badle fix)
+            // PROXY FIX: CORS Error bypass karne ke liye 'AllOrigins' use kar rahe hain
             const proxyURL = `https://api.allorigins.win/get?url=${encodeURIComponent(scriptURL)}`;
             
             const response = await fetch(proxyURL);
-            const result = await response.json();
-            const data = JSON.parse(result.contents); // Proxy data ko 'contents' mein lapet deta hai
+            if (!response.ok) throw new Error('Proxy connection failed');
             
+            const result = await response.json();
+            const data = JSON.parse(result.contents); // Proxy data ko 'contents' key mein bhejta hai
+            
+            // Link Formatting for WebView
             allPhotos = data.map(item => {
                 let fileId = "";
-                if (item.url.includes("picture/0")) {
-                    fileId = item.url.split("picture/0")[1];
-                } else {
-                    fileId = item.url.split("/").pop();
+                // Agar Apps Script 'url' bhej raha hai toh usme se ID nikaalein
+                if (item.url) {
+                   fileId = item.url.includes("id=") ? item.url.split("id=")[1] : item.url.split("/").pop();
+                } else if (item.id) {
+                   fileId = item.id;
                 }
+                
                 return {
                     "name": item.name,
                     "url": "https://drive.google.com/uc?export=download&id=" + fileId
@@ -63,7 +75,7 @@
             });
 
             if (allPhotos.length === 0) {
-                loader.innerHTML = "Folder khali hai.";
+                loader.innerHTML = "Folder khali hai!";
                 return;
             }
 
@@ -76,23 +88,46 @@
                 div.className = 'img-card';
                 const img = document.createElement('img');
                 img.src = item.url;
+                img.loading = "lazy";
                 img.onclick = () => openModal(index);
+                
+                // Backup image agar koi link broken ho
                 img.onerror = function() { this.src = 'https://cdn-icons-png.flaticon.com/512/16/16410.png'; };
+
                 div.appendChild(img);
                 container.appendChild(div);
             });
         } catch (e) { 
-            loader.innerHTML = "Error: Data fetch nahi ho saka. URL check karein."; 
             console.error(e);
+            loader.innerHTML = "Error: Gallery load nahi ho saki. <br>Internet ya Script Permissions check karein."; 
         }
     }
 
-    function openModal(index) { currentIndex = index; document.getElementById('photoModal').style.display = 'flex'; updateImg(); }
-    function closeModal() { document.getElementById('photoModal').style.display = 'none'; }
-    function updateImg() { document.getElementById('fullImg').src = allPhotos[currentIndex].url; }
-    function changePhoto(step) { currentIndex = (currentIndex + step + allPhotos.length) % allPhotos.length; updateImg(); }
+    // Modal Controls
+    function openModal(index) {
+        currentIndex = index;
+        document.getElementById('photoModal').style.display = 'flex';
+        updateImg();
+    }
 
-    document.getElementById('photoModal').onclick = function(e) { if (e.target.className === 'modal' || e.target.className === 'close-btn') closeModal(); };
+    function closeModal() {
+        document.getElementById('photoModal').style.display = 'none';
+    }
+
+    function updateImg() {
+        const fullImg = document.getElementById('fullImg');
+        fullImg.src = allPhotos[currentIndex].url;
+    }
+
+    function changePhoto(step) {
+        currentIndex = (currentIndex + step + allPhotos.length) % allPhotos.length;
+        updateImg();
+    }
+
+    // Modal background click to close
+    document.getElementById('photoModal').onclick = function(e) {
+        if (e.target.className === 'modal') closeModal();
+    };
 
     loadGallery();
 </script>
