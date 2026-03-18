@@ -1,95 +1,36 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Academic Gallery</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: sans-serif; margin: 0; background: #f0f2f5; }
-        header { background: #fff; padding: 15px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
-        h1 { margin: 0; font-size: 1.1rem; color: #333; }
-        .gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px; }
-        .img-card { background: #e0e0e0; border-radius: 10px; overflow: hidden; aspect-ratio: 1/1; position: relative; border: 1px solid #ddd; }
-        .img-card img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; transition: opacity 0.5s; }
-        .img-card img.loaded { opacity: 1; }
-        .loading-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; color: #777; }
-        
-        /* Modal Viewer */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; justify-content: center; align-items: center; }
-        .modal img { max-width: 95%; max-height: 80%; object-fit: contain; }
-        .close-btn { position: absolute; top: 20px; right: 20px; color: #fff; font-size: 40px; }
-        .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); color: #fff; font-size: 50px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 50%; }
-        .prev { left: 10px; } .next { right: 10px; }
+        body { margin: 0; background: #f0f2f5; font-family: sans-serif; }
+        .gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 8px; }
+        .card { background: #fff; aspect-ratio: 1/1; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        img { width: 100%; height: 100%; object-fit: cover; }
+        #msg { text-align: center; margin-top: 20px; color: #666; }
     </style>
 </head>
 <body>
+    <div id="msg">Photos load ho rahi hain...</div>
+    <div class="gallery" id="gal"></div>
 
-<header><h1>Academic Gallery</h1></header>
-<div id="loader" style="text-align:center; padding:20px;">Connecting to Drive...</div>
-<div class="gallery" id="gallery"></div>
+    <script>
+        const url = 'https://script.google.com/macros/s/AKfycbzZRbhRHHMuPQOSgpVBApDLmWZXSaLiom5ut3VPbq2ABVpUtOuP_GqS2-kDzR3GL00D/exec';
 
-<div id="photoModal" class="modal">
-    <span class="close-btn" onclick="closeModal()">×</span>
-    <div class="nav-btn prev" onclick="changePhoto(-1)">❮</div>
-    <img id="fullImg" src="">
-    <div class="nav-btn next" onclick="changePhoto(1)">❯</div>
-</div>
-
-<script>
-    // 1. APNA SCRIPT URL YAHAN DALEIN
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbzZRbhRHHMuPQOSgpVBApDLmWZXSaLiom5ut3VPbq2ABVpUtOuP_GqS2-kDzR3GL00D/exec'; 
-    
-    let allPhotos = [];
-    let currentIndex = 0;
-
-    async function loadGallery() {
-        try {
-            const response = await fetch(scriptURL);
-            const data = await response.json();
-            
-            allPhotos = data.map(item => {
-                let fileId = item.id || (item.url ? item.url.split("id=")[1] : "");
-                return {
-                    "name": item.name,
-                    // GOOGLE CONTENT PROXY: Ye link hamesha photo load karega
-                    "url": "https://lh3.googleusercontent.com/u/0/d/" + fileId
-                };
+        fetch(url)
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('msg').style.display = 'none';
+            let html = '';
+            data.forEach(item => {
+                // Direct Thumbnail Link jo WebView block nahi karta
+                let id = item.id || item.url.split('id=')[1];
+                let thumb = `https://drive.google.com/thumbnail?id=${id}&sz=w500`;
+                html += `<div class="card"><img src="${thumb}"></div>`;
             });
-
-            document.getElementById('loader').style.display = 'none';
-            const container = document.getElementById('gallery');
-            container.innerHTML = '';
-            
-            allPhotos.forEach((item, index) => {
-                const div = document.createElement('div');
-                div.className = 'img-card';
-                div.innerHTML = '<div class="loading-text">Loading...</div>';
-                
-                const img = document.createElement('img');
-                img.src = item.url;
-                img.onload = function() { 
-                    this.classList.add('loaded');
-                    if(this.previousSibling) this.previousSibling.style.display = 'none';
-                };
-                img.onerror = function() {
-                    // Fail-safe: Agar naya link bhi fail ho toh purana thumbnail try karein
-                    this.src = "https://drive.google.com/thumbnail?id=" + item.url.split("/d/")[1] + "&sz=w400";
-                };
-                img.onclick = () => openModal(index);
-                
-                div.appendChild(img);
-                container.appendChild(div);
-            });
-        } catch (e) { document.getElementById('loader').innerHTML = "Network Error!"; }
-    }
-
-    function openModal(index) { currentIndex = index; document.getElementById('photoModal').style.display = 'flex'; update(); }
-    function closeModal() { document.getElementById('photoModal').style.display = 'none'; }
-    function update() { document.getElementById('fullImg').src = allPhotos[currentIndex].url; }
-    function changePhoto(step) { currentIndex = (currentIndex + step + allPhotos.length) % allPhotos.length; update(); }
-
-    loadGallery();
-</script>
+            document.getElementById('gal').innerHTML = html;
+        })
+        .catch(err => { document.getElementById('msg').innerHTML = "Connection Error!"; });
+    </script>
 </body>
 </html>
