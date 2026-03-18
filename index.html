@@ -6,7 +6,7 @@
     <title>Academic Gallery</title>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: sans-serif; margin: 0; background: #f0f2f5; }
+        body { font-family: sans-serif; margin: 0; background: #f0f2f5; overflow-x: hidden; }
         header { background: #fff; padding: 15px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
         h1 { margin: 0; font-size: 1.1rem; color: #333; }
         .gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px; }
@@ -34,18 +34,19 @@
 </div>
 
 <script>
-    // 1. APNA APPS SCRIPT URL
+    // 1. APNA SCRIPT URL
     const scriptURL = 'https://script.google.com/macros/s/AKfycbswuBoNcTbesQZqxXURnB7rRY8dMClsTZerR83VzsMw1lxbatqigI9gHborj1SImlM/exec'; 
     
     let allPhotos = [];
     let currentIndex = 0;
 
-    // JSONP callback function jo data handle karegi
+    // Yeh function data aane par execute hoga
     function handleResponse(data) {
         const loader = document.getElementById('loader');
         const container = document.getElementById('gallery');
         
         allPhotos = data.map(item => {
+            // ID nikalne ka logic jo aapke Code.gs ke sath compatible hai
             let fileId = item.url.includes("picture/0") ? item.url.split("picture/0")[1] : item.url.split("/").pop();
             return {
                 "name": item.name,
@@ -69,17 +70,11 @@
     }
 
     function loadGallery() {
-        // Injection Method: Ye CORS error ko bypass karta hai
+        // Script Tag Method: CORS issues ko bypass karne ke liye
         const script = document.createElement('script');
-        script.src = scriptURL + "?callback=handleResponse";
+        // "?prefix=handleResponse" use karne se Apps Script response ko handleResponse() mein wrap kar deta hai
+        script.src = scriptURL + "?prefix=handleResponse";
         document.body.appendChild(script);
-        
-        // Timeout check agar 10 sec tak load na ho
-        setTimeout(() => {
-            if (allPhotos.length === 0) {
-                document.getElementById('loader').innerHTML = "Connection slow hai, ya URL sahi nahi hai.";
-            }
-        }, 10000);
     }
 
     function openModal(index) { currentIndex = index; document.getElementById('photoModal').style.display = 'flex'; updateImg(); }
