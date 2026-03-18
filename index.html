@@ -15,18 +15,19 @@
         .img-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; justify-content: center; align-items: center; }
-        .modal img { max-width: 100%; max-height: 85%; object-fit: contain; }
+        .modal img { max-width: 100%; max-height: 85%; object-fit: contain; transition: opacity 0.2s; }
         
         .close-btn { position: absolute; top: 20px; right: 20px; color: #fff; font-size: 40px; cursor: pointer; z-index: 1002; }
         .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); color: #fff; font-size: 45px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 50%; user-select: none; cursor: pointer; z-index: 1001; }
         .prev { left: 10px; } .next { right: 10px; }
-        #loader { text-align: center; padding: 40px; color: #666; font-weight: bold; }
+        #loader { text-align: center; padding: 40px; color: #666; font-weight: bold; font-size: 0.9rem; }
+    </small>
     </style>
 </head>
 <body>
 
 <header><h1>Academic Gallery</h1></header>
-<div id="loader">Data fetch ho raha hai...</div>
+<div id="loader">Photos connect ho rahi hain...</div>
 <div class="gallery" id="gallery"></div>
 
 <div id="photoModal" class="modal">
@@ -37,70 +38,80 @@
 </div>
 
 <script>
-    // 1. APNA SCRIPT URL YAHAN DHYAN SE CHECK KAREIN
     const scriptURL = 'https://script.google.com/macros/s/AKfycbswuBoNcTbesQZqxXURnB7rRY8dMClsTZerR83VzsMw1lxbatqigI9gHborj1SImlM/exec'; 
     
     let allPhotos = [];
     let currentIndex = 0;
 
-    async function loadGallery() {
+    function loadGallery() {
         const loader = document.getElementById('loader');
-        try {
-            // Added redirect: 'follow' and CORS mode for better connectivity
-            const response = await fetch(scriptURL, {
-                method: 'GET',
-                redirect: 'follow'
-            });
-            
-            if (!response.ok) throw new Error('Network response was not ok');
-            
-            const data = await response.json();
-            
-            // WEBVIEW FIX: Extracting ID from your existing Code.gs format
-            allPhotos = data.map(item => {
-                let fileId = "";
-                if (item.url.includes("picture/0")) {
-                    fileId = item.url.split("picture/0")[1];
-                } else if (item.url.includes("id=")) {
-                    fileId = item.url.split("id=")[1];
+        const xhr = new XMLHttpRequest();
+        
+        // XMLHttpRequest is more stable for Apps Script redirects
+        xhr.open("GET", scriptURL, true);
+        
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    try {
+                        const data = JSON.parse(xhr.responseText);
+                        processData(data);
+                    } catch (e) {
+                        loader.innerHTML = "Error parsing data: " + e.message;
+                    }
                 } else {
-                    fileId = item.url.split("/").pop();
+                    loader.innerHTML = "Connection Failed (Status: " + xhr.status + ").<br>Please refresh.";
                 }
-                
-                return {
-                    "name": item.name,
-                    "url": "https://drive.google.com/uc?export=download&id=" + fileId
-                };
-            });
-
-            if (allPhotos.length === 0) {
-                loader.innerHTML = "Folder khali mila!";
-                return;
             }
+        };
 
-            loader.style.display = 'none';
-            const container = document.getElementById('gallery');
-            container.innerHTML = '';
+        xhr.onerror = function() {
+            loader.innerHTML = "Network Error! Please check Internet or URL.";
+        };
+
+        xhr.send();
+    }
+
+    function processData(data) {
+        const container = document.getElementById('gallery');
+        const loader = document.getElementById('loader');
+
+        allPhotos = data.map(item => {
+            let fileId = "";
+            // Extracting ID from your specific Code.gs link format
+            if (item.url.includes("picture/0")) {
+                fileId = item.url.split("picture/0")[1];
+            } else if (item.url.includes("id=")) {
+                fileId = item.url.split("id=")[1];
+            } else {
+                fileId = item.url.split("/").pop();
+            }
             
-            allPhotos.forEach((item, index) => {
-                const div = document.createElement('div');
-                div.className = 'img-card';
-                const img = document.createElement('img');
-                img.src = item.url;
-                img.loading = "lazy";
-                img.onclick = () => openModal(index);
-                
-                img.onerror = function() {
-                    this.src = 'https://cdn-icons-png.flaticon.com/512/16/16410.png';
-                };
+            return {
+                "name": item.name,
+                "url": "https://drive.google.com/uc?export=download&id=" + fileId
+            };
+        });
 
-                div.appendChild(img);
-                container.appendChild(div);
-            });
-        } catch (e) { 
-            console.error(e);
-            loader.innerHTML = "Connection Error! URL ya Permissions check karein. <br><br> <small>" + e.message + "</small>"; 
+        if (allPhotos.length === 0) {
+            loader.innerHTML = "No photos found in folder.";
+            return;
         }
+
+        loader.style.display = 'none';
+        container.innerHTML = '';
+        
+        allPhotos.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.className = 'img-card';
+            const img = document.createElement('img');
+            img.src = item.url;
+            img.loading = "lazy";
+            img.onclick = () => openModal(index);
+            img.onerror = function() { this.src = 'https://cdn-icons-png.flaticon.com/512/16/16410.png'; };
+            div.appendChild(img);
+            container.appendChild(div);
+        });
     }
 
     function openModal(index) {
@@ -113,7 +124,9 @@
 
     function updateImg() {
         const fullImg = document.getElementById('fullImg');
+        fullImg.style.opacity = "0.7";
         fullImg.src = allPhotos[currentIndex].url;
+        fullImg.onload = () => { fullImg.style.opacity = "1"; };
     }
 
     function changePhoto(step) {
