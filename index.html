@@ -3,49 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mobile Photo Gallery</title>
+    <title>Smart Gallery App</title>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { 
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-            margin: 0; 
-            background: #f0f2f5; 
-            overflow-x: hidden;
-        }
+        body { font-family: sans-serif; margin: 0; background: #f0f2f5; overflow-x: hidden; }
         
-        header { 
-            background: #fff; 
-            padding: 15px; 
-            text-align: center; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        
-        h1 { margin: 0; font-size: 1.2rem; color: #333; }
+        header { background: #fff; padding: 15px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h1 { margin: 0; font-size: 1.1rem; color: #333; }
 
-        /* Mobile Friendly Grid */
+        /* Grid for Mobile */
         .gallery {
             display: grid;
-            grid-template-columns: repeat(2, 1fr); /* Mobile par 2 columns */
-            gap: 8px;
-            padding: 8px;
-            max-width: 1200px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            padding: 10px;
+            max-width: 800px;
             margin: auto;
-        }
-
-        @media (min-width: 600px) {
-            .gallery { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
         }
 
         .img-card {
             background: #fff;
-            border-radius: 8px;
+            border-radius: 10px;
             overflow: hidden;
-            aspect-ratio: 1 / 1; /* Square boxes for better look */
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            aspect-ratio: 1 / 1;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #ddd;
         }
 
         .img-card img {
@@ -55,7 +37,7 @@
             display: block;
         }
 
-        /* Zoom Modal */
+        /* Modal / Zoom View */
         .modal {
             display: none;
             position: fixed;
@@ -75,40 +57,33 @@
         .close-btn {
             position: absolute;
             top: 15px; right: 20px;
-            color: white;
-            font-size: 30px;
+            color: #fff;
+            font-size: 35px;
             z-index: 1001;
+            cursor: pointer;
         }
 
-        /* Navigation Buttons - Mobile Optimized */
         .nav-btn {
             position: absolute;
             top: 50%;
             transform: translateY(-50%);
-            color: white;
-            font-size: 40px;
-            padding: 20px;
-            background: rgba(0,0,0,0.2);
+            color: #fff;
+            font-size: 45px;
+            padding: 15px;
+            background: rgba(0,0,0,0.4);
             border-radius: 50%;
             user-select: none;
         }
-        .prev { left: 5px; }
-        .next { right: 5px; }
+        .prev { left: 10px; }
+        .next { right: 10px; }
 
-        #loading {
-            text-align: center;
-            padding: 50px;
-            color: #666;
-        }
+        #loading { text-align: center; padding: 40px; color: #666; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<header>
-    <h1>My Gallery</h1>
-</header>
-
-<div id="loading">Photos load ho rahi hain...</div>
+<header><h1>School Gallery</h1></header>
+<div id="loading">Photos aa rahi hain...</div>
 <div class="gallery" id="gallery"></div>
 
 <div id="photoModal" class="modal">
@@ -132,11 +107,22 @@
             const response = await fetch(scriptURL);
             const data = await response.json();
             
-            // HTTPS security bypass and data storage
-            allPhotos = data.map(item => ({
-                ...item,
-                url: item.url.replace('http://', 'https://')
-            }));
+            // YAHAN HAI FIX: Code.gs badle bina hum URL format ko yahan change kar rahe hain
+            allPhotos = data.map(item => {
+                let fileId = "";
+                // URL se ID nikaalne ka logic
+                if(item.url.includes("id=")) {
+                    fileId = item.url.split("id=")[1];
+                } else {
+                    fileId = item.url.split("/").pop();
+                }
+                
+                return {
+                    ...item,
+                    // Universal format jo WebView block nahi karta
+                    url: "https://drive.google.com/uc?export=download&id=" + fileId
+                };
+            });
 
             if (allPhotos.length === 0) {
                 loader.innerHTML = "Folder khali hai!";
@@ -153,14 +139,17 @@
                 const img = document.createElement('img');
                 img.src = item.url;
                 img.loading = "lazy";
+                // WebView Broken icon fix
+                img.onerror = function() {
+                    this.src = 'https://cdn-icons-png.flaticon.com/512/16/16410.png'; // Fallback icon
+                };
                 img.onclick = () => openModal(index);
 
                 div.appendChild(img);
                 container.appendChild(div);
             });
         } catch (error) {
-            loader.innerHTML = "Error: Photos load nahi ho saki.";
-            console.error(error);
+            loader.innerHTML = "Connection Error! Check Internet.";
         }
     }
 
@@ -179,13 +168,11 @@
     }
 
     function changePhoto(step) {
-        currentIndex += step;
-        if (currentIndex >= allPhotos.length) currentIndex = 0;
-        if (currentIndex < 0) currentIndex = allPhotos.length - 1;
+        currentIndex = (currentIndex + step + allPhotos.length) % allPhotos.length;
         updateModalImage();
     }
 
-    // Modal background click to close
+    // Modal click settings
     document.getElementById('photoModal').onclick = function(e) {
         if (e.target.className === 'modal') closeModal();
     };
