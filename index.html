@@ -10,7 +10,7 @@
         header { background: #fff; padding: 15px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
         h1 { margin: 0; font-size: 1.1rem; color: #333; }
         .gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px; }
-        .img-card { background: #fff; border-radius: 10px; overflow: hidden; aspect-ratio: 1/1; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .img-card { background: #fff; border-radius: 10px; overflow: hidden; aspect-ratio: 1/1; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #ddd; }
         .img-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; justify-content: center; align-items: center; }
         .modal img { max-width: 100%; max-height: 90%; object-fit: contain; }
@@ -30,17 +30,29 @@
 </div>
 
 <script>
-    // APNA NAYA APPS SCRIPT URL YAHAN DALEIN
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbyGpVibNA_QTjhZx0H5NNe3lzBkdJZkCzQycAwwHmM_m4Ii_1h9rb3iRrQzzJlAOeg/exec';
+    // 1. APNA NAYA APPS SCRIPT URL YAHAN REPLACE KAREIN
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbwswuBoNcTbesQZqxXURnB7rRY8dMClsTZerR83VzsMw1lxbatqigI9gHborj1SImlM/exec'; 
     
     let allPhotos = [];
 
     async function loadGallery() {
         try {
             const response = await fetch(scriptURL);
-            allPhotos = await response.json();
-            const container = document.getElementById('gallery');
+            const data = await response.json();
+            
+            // FIX: Code.gs se aane wale http ko https mein badalna
+            allPhotos = data.map(item => ({
+                "name": item.name,
+                "url": item.url.replace('http://', 'https://')
+            }));
+
+            if (allPhotos.length === 0) {
+                document.getElementById('loader').innerHTML = "Folder khali hai!";
+                return;
+            }
+
             document.getElementById('loader').style.display = 'none';
+            const container = document.getElementById('gallery');
             container.innerHTML = '';
             
             allPhotos.forEach((item, index) => {
@@ -48,6 +60,7 @@
                 div.className = 'img-card';
                 const img = document.createElement('img');
                 img.src = item.url;
+                img.loading = "lazy";
                 img.onclick = () => {
                     document.getElementById('fullImg').src = item.url;
                     document.getElementById('photoModal').style.display = 'flex';
