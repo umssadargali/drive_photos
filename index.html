@@ -3,84 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Smart Gallery App</title>
+    <title>School Photo Gallery</title>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: sans-serif; margin: 0; background: #f0f2f5; overflow-x: hidden; }
-        header { background: #fff; padding: 15px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        h1 { margin: 0; font-size: 1.1rem; color: #333; }
-
-        .gallery {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px; padding: 10px; max-width: 800px; margin: auto;
-        }
-
-        .img-card {
-            background: #fff; border-radius: 10px; overflow: hidden;
-            aspect-ratio: 1 / 1; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            border: 1px solid #ddd;
-        }
-
+        body { font-family: sans-serif; margin: 0; background: #f4f7f6; overflow-x: hidden; }
+        header { background: #ffffff; padding: 15px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+        h1 { margin: 0; font-size: 1.2rem; color: #333; }
+        
+        .gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 12px; max-width: 900px; margin: auto; }
+        .img-card { background: #fff; border-radius: 12px; overflow: hidden; aspect-ratio: 1/1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border: 1px solid #eee; cursor: pointer; }
         .img-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-        .modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 1000; justify-content: center; align-items: center;
-        }
-
+        /* Full Screen View */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; justify-content: center; align-items: center; }
         .modal img { max-width: 100%; max-height: 90%; object-fit: contain; }
-
-        .close-btn { position: absolute; top: 15px; right: 20px; color: #fff; font-size: 35px; z-index: 1001; }
-
-        .nav-btn {
-            position: absolute; top: 50%; transform: translateY(-50%);
-            color: #fff; font-size: 45px; padding: 15px;
-            background: rgba(0,0,0,0.4); border-radius: 50%; user-select: none;
-        }
+        .close-btn { position: absolute; top: 20px; right: 20px; color: #fff; font-size: 40px; cursor: pointer; z-index: 1001; }
+        .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); color: #fff; font-size: 50px; padding: 20px; background: rgba(0,0,0,0.3); border-radius: 50%; user-select: none; }
         .prev { left: 10px; } .next { right: 10px; }
-        #loading { text-align: center; padding: 40px; color: #666; font-weight: bold; }
+        #loader { text-align: center; padding: 50px; font-weight: bold; color: #555; }
     </style>
 </head>
 <body>
 
-<header><h1>School Gallery</h1></header>
-<div id="loading">Photos load ho rahi hain...</div>
+<header><h1>Academic Gallery</h1></header>
+<div id="loader">Photos load ho rahi hain...</div>
 <div class="gallery" id="gallery"></div>
 
 <div id="photoModal" class="modal">
     <span class="close-btn" onclick="closeModal()">&times;</span>
     <div class="nav-btn prev" onclick="changePhoto(-1)">&#10094;</div>
-    <img id="fullImg" src="" onclick="event.stopPropagation()">
+    <img id="fullImg" src="">
     <div class="nav-btn next" onclick="changePhoto(1)">&#10095;</div>
 </div>
 
 <script>
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbwU4ocr6NxmS_Ni0fRkNcPacl-l803vZhsUl9MoO7Niau1fdSaAnF04Zzzkfc2qWKZ1/exec';
+    // 1. APNA NAYA APPS SCRIPT URL YAHAN REPLACE KAREIN
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbwo_Lv8Hzcnay0CQk204Z5MYk-BqiB0fe98Rl8AMQcbvjIflg7irNWbNUqO78NLglD1/exec';
     
     let allPhotos = [];
     let currentIndex = 0;
 
     async function loadGallery() {
         const container = document.getElementById('gallery');
-        const loader = document.getElementById('loading');
-        
+        const loader = document.getElementById('loader');
         try {
             const response = await fetch(scriptURL);
-            const data = await response.json();
+            allPhotos = await response.json();
             
-            // FIX: Purane Code.gs ke URL se File ID nikal kar Naya Secure Link banana
-            allPhotos = data.map(item => {
-                // Aapke purane link mein "0" ke baad File ID shuru hoti hai
-                // Link: https://lh3.googleusercontent.com/d/FILE_ID_HERE
-                let fileId = item.url.split('/picture/0')[1] || item.url.split('id=')[1] || item.url.split('/').pop();
-                
-                return {
-                    "name": item.name,
-                    "url": "https://drive.google.com/uc?export=download&id=" + fileId
-                };
-            });
-
             if (allPhotos.length === 0) {
                 loader.innerHTML = "Folder khali hai!";
                 return;
@@ -95,44 +64,24 @@
                 const img = document.createElement('img');
                 img.src = item.url;
                 img.loading = "lazy";
-                
-                img.onerror = function() {
-                    // Agar link fail ho toh broken icon ki jagah ye dikhe
-                    this.src = 'https://cdn-icons-png.flaticon.com/512/16/16410.png'; 
-                };
-
                 img.onclick = () => openModal(index);
                 div.appendChild(img);
                 container.appendChild(div);
             });
-        } catch (error) {
-            loader.innerHTML = "Internet check karein!";
+        } catch (e) {
+            loader.innerHTML = "Error: Internet check karein!";
         }
     }
 
-    function openModal(index) {
-        currentIndex = index;
-        document.getElementById('photoModal').style.display = 'flex';
-        updateModalImage();
-    }
-
+    function openModal(i) { currentIndex = i; document.getElementById('photoModal').style.display = 'flex'; update(); }
     function closeModal() { document.getElementById('photoModal').style.display = 'none'; }
+    function update() { document.getElementById('fullImg').src = allPhotos[currentIndex].url; }
+    function changePhoto(s) { currentIndex = (currentIndex + s + allPhotos.length) % allPhotos.length; update(); }
 
-    function updateModalImage() {
-        document.getElementById('fullImg').src = allPhotos[currentIndex].url;
-    }
-
-    function changePhoto(step) {
-        currentIndex = (currentIndex + step + allPhotos.length) % allPhotos.length;
-        updateModalImage();
-    }
-
-    document.getElementById('photoModal').onclick = function(e) {
-        if (e.target.className === 'modal' || e.target.className === 'close-btn') closeModal();
-    };
+    // Click outside to close
+    document.getElementById('photoModal').onclick = function(e) { if(e.target.className === 'modal') closeModal(); };
 
     loadGallery();
 </script>
-
 </body>
 </html>
