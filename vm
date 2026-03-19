@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Riyaz Sir's Virtual Biology Microscope</title>
+    
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 10px; background: #2c3e50; color: white; -webkit-font-smoothing: antialiased; }
+        
+        /* Microscope Container */
+        .microscope-lab { max-width: 500px; margin: auto; background: #34495e; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); padding: 15px; position: relative; overflow: hidden; }
+        
+        /* Official Header */
+        h1 { margin-top: 0; font-size: 1.4rem; color: #3498db; text-align: center; border-bottom: 2px solid #3498db; padding-bottom: 8px; margin-bottom: 10px; }
+        .PGT { font-size: 11px; color: #bdc3c7; text-align: center; margin-bottom: 15px; margin-top: -5px;}
+        
+        /* Microscope Viewport (The Circular Eyepiece) */
+        .viewport-container { position: relative; width: 300px; height: 300px; border-radius: 50%; border: 15px solid #bdc3c7; margin: auto; background: black; overflow: hidden; box-shadow: inset 0 0 30px rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center;}
+        .specimen-svg { width: 100%; max-width: 300px; height: auto; transform: scale(1); filter: blur(2px); transition: transform 0.2s ease, filter 0.1s ease; position: relative; } /* Transition added */
+        
+        /* Pulsing Dots on Microscope View (Advanced) */
+        .label-dot {
+            position: absolute; width: 14px; height: 14px; 
+            border-radius: 50%; border: 2px solid white;
+            cursor: pointer; animation: pulseEffect 1.5s infinite;
+            box-shadow: 0 0 12px rgba(0,0,0,0.3); display: none; /* Hidden initially, shown only on focus */
+        }
+        @keyframes pulseEffect {
+            0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.5); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
+            100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+        }
+        
+        /* Dot Color Coding */
+        .color-red { background: #e74c3c; box-shadow: 0 0 10px rgba(231, 76, 60, 0.5); }
+        
+        /* Interactive Knobs (Sliders) */
+        .microscope-controls { display: flex; justify-content: space-around; margin-top: 20px; background: #ecf0f1; border-radius: 12px; padding: 10px; border: 1px solid #bdc3c7;}
+        .control-group { text-align: center; width: 45%; }
+        label { color: #2c3e50; font-size: 13px; font-weight: bold; margin-bottom: 8px; display: block; }
+        input[type=range] { width: 100%; -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%; background: #3498db; cursor: pointer; margin-top: -6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; cursor: pointer; background: #ddd; border-radius: 3px; }
+
+        /* Slide Selection (Icons) */
+        .slide-selector { display: flex; justify-content: space-around; background: #ecf0f1; padding: 10px; border-radius: 12px; margin-top: 15px; border: 1px solid #bdc3c7;}
+        .slide-icon { background: #fff; border: 2px solid #ddd; color: #555; padding: 10px 18px; border-radius: 12px; font-weight: bold; font-size: 13px; cursor: pointer; transition: 0.3s; width: 28%; text-align: center; }
+        .slide-icon.active { background: #3498db; color: white; border-color: #3498db; box-shadow: 0 4px 6px rgba(52, 152, 219, 0.3); }
+
+        /* Unified Info Box (Advanced Popup) */
+        .info-drawer { 
+            background: rgba(44, 62, 80, 0.98); color: white; border-radius: 12px; 
+            padding: 15px; display: none; position: fixed; bottom: -100px; left: 0; width: 100%; 
+            transition: bottom 0.3s ease; z-index: 1000; box-sizing: border-box;
+        }
+        .info-drawer.open { bottom: 0; }
+        #part-header { margin-top: 0; font-size: 17px; color: #3498db;}
+        #part-desc { margin: 0; font-size: 13px; line-height: 1.5; color: #bdc3c7; }
+        .close-drawer { position: absolute; top: 8px; right: 15px; font-size: 22px; color: #fff; cursor: pointer; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; background: rgba(0,0,0,0.5); z-index: 999; }
+
+    </style>
+</head>
+<body>
+
+<div class="microscope-lab">
+    <h1>🔬 Virtual Microscope</h1>
+    <p class="PGT">Presented by Riyaz Sir, Zoology PGT</p>
+    
+    <div class="viewport-container" id="viewport">
+        <img src="" class="specimen-svg" id="specimen-svg" alt="Biology Specimen">
+        
+        <div id="dots-container"></div>
+    </div>
+
+    <div class="microscope-controls">
+        <div class="control-group">
+            <label>Magnification (Zoom)</label>
+            <input type="range" id="zoom-knob" min="1" max="4" step="0.1" value="1" oninput="updateView()">
+        </div>
+        <div class="control-group">
+            <label>Fine Focus (Blur)</label>
+            <input type="range" id="focus-knob" min="0" max="5" step="0.1" value="2" oninput="updateView()">
+        </div>
+    </div>
+
+    <div class="slide-selector">
+        <button class="slide-icon active" onclick="loadSlide('Amoeba')" id="icon-Amoeba">💧 Amoeba</button>
+        <button class="slide-icon" onclick="loadSlide('Mitosis')" id="icon-Mitosis">🧬 Mitosis</button>
+        <button class="slide-icon" onclick="loadSlide('Bacteria')" id="icon-Bacteria">🦠 Bacteria</button>
+    </div>
+
+</div>
+
+<div class="overlay" id="overlay" onclick="closeDrawer()"></div>
+<div class="info-drawer" id="part-drawer">
+    <span class="close-drawer" onclick="closeDrawer()">&times;</span>
+    <h3 id="part-header">Part Name</h3>
+    <p id="part-desc"> Physiological details.</p>
+</div>
+
+<script>
+    // Microscope Data (Advanced Zoology slides)
+    const microscopeData = {
+        'Amoeba': {
+            img: 'https://upload.wikimedia.org/wikipedia/commons/2/2a/Amoeba_proteus.svg',
+            parts: {
+                'Nucleus': { top: '35%', left: '40%', color: 'color-red', desc: 'Control Center of the Cell. Contains genetic information.' },
+                'Pseudopodia': { top: '65%', left: '70%', color: 'color-red', desc: 'Temporary foot-like projections used for movement and engulfing food.' },
+                'Contractile Vacuole': { top: '50%', left: '15%', color: 'color-red', desc: 'Organelle involved in osmoregulation, expelling excess water from the cell.' },
+                'Food Vacuole': { top: '20%', left: '75%', color: 'color-red', desc: 'Temporary vacuole containing captured food particles undergoing digestion.' }
+            }
+        },
+        'Mitosis': {
+            img: 'https://upload.wikimedia.org/wikipedia/commons/e/e0/Mitosis_stages.svg',
+            parts: {
+                'Metaphase': { top: '45%', left: '25%', color: 'color-red', desc: 'Stage where chromosomes align along the equatorial plate of the cell.' },
+                'Anaphase': { top: '45%', left: '70%', color: 'color-red', desc: 'Stage where sister chromatids separate and move towards opposite poles.' },
+                'Spindle Fibers': { top: '15%', left: '50%', color: 'color-red', desc: 'Microtubule structures that guide chromosome movement during cell division.' }
+            }
+        },
+        'Bacteria': {
+            img: 'https://upload.wikimedia.org/wikipedia/commons/5/5a/Average_prokaryote_cell-_en.svg',
+            parts: {
+                'Nucleoid': { top: '50%', left: '50%', color: 'color-red', desc: 'Irregularly shaped region containing the bacterial chromosome (DNA).' },
+                'Flagellum': { top: '80%', left: '80%', color: 'color-red', desc: 'Tail-like structure used by bacteria for locomotion.' },
+                'Cell Wall': { top: '10%', left: '50%', color: 'color-red', desc: 'Rigid outer layer providing structural support and protection to the bacterial cell.' }
+            }
+        }
+    };
+
+    let currentSlide = 'Amoeba';
+
+    function loadSlide(slideName) {
+        // 1. Update Navigation Icons
+        document.querySelectorAll('.slide-icon').forEach(icon => icon.classList.remove('active'));
+        document.getElementById(`icon-${slideName}`).classList.add('active');
+        
+        // 2. Load New Image
+        const img = document.getElementById('specimen-svg');
+        const container = document.getElementById('dots-container');
+        
+        img.src = microscopeData[slideName].img;
+        currentSlide = slideName;
+        
+        // 3. Precision Dots Loading (Hidden initially)
+        img.onload = function() {
+            container.innerHTML = ''; // Clear old dots
+            const parts = microscopeData[slideName].parts;
+            for (const part in parts) {
+                const data = parts[part];
+                
+                // Create new dot dynamically
+                const dot = document.createElement('div');
+                dot.className = `label-dot ${data.color}`;
+                dot.style.top = data.top;
+                dot.style.left = data.left;
+                
+                // Set click action
+                dot.onclick = () => showPart(part, data.desc);
+                
+                container.appendChild(dot);
+            }
+            updateView(); // Force initial update
+        };
+        
+        closeDrawer(); // Close any open drawer
+    }
+
+    function updateView() {
+        // 1. Get Slider Values
+        const zoomValue = document.getElementById('zoom-knob').value;
+        const blurValue = document.getElementById('focus-knob').value;
+        
+        // 2. Apply CSS Transformations
+        const img = document.getElementById('specimen-svg');
+        const dots = document.querySelectorAll('.label-dot');
+        
+        img.style.transform = `scale(${zoomValue})`;
+        img.style.filter = `blur(${blurValue}px)`;
+        
+        // 3. Precision Dots Handling (Show dots only when in-focus and magnify slightly)
+        const currentParts = microscopeData[currentSlide].parts;
+        dots.forEach(dot => {
+            if(blurValue <= 0.5 && zoomValue >= 1.5) { // Threshold for "focus" and "magnify"
+                dot.style.display = 'block'; 
+            } else {
+                dot.style.display = 'none'; 
+            }
+        });
+        
+    }
+
+    function showPart(partName, description) {
+        const header = document.getElementById('part-header');
+        const desc = document.getElementById('part-desc');
+        const drawer = document.getElementById('part-drawer');
+        const overlay = document.getElementById('overlay');
+        
+        // Android Haptic Vibrate (Fail-safe)
+        if (navigator.vibrate) { navigator.vibrate(60); }
+
+        header.innerText = partName;
+        desc.innerText = description;
+        
+        // Slide Up Animation
+        overlay.style.display = 'block';
+        drawer.style.display = 'block';
+        setTimeout(() => drawer.classList.add('open'), 10);
+    }
+
+    function closeDrawer() {
+        const drawer = document.getElementById('part-drawer');
+        const overlay = document.getElementById('overlay');
+        
+        if(drawer) drawer.classList.remove('open');
+        setTimeout(() => { 
+            if(drawer) drawer.style.display = 'none'; 
+            if(overlay) overlay.style.display = 'none';
+        }, 300);
+    }
+
+    // Load default slide on startup
+    loadSlide('Amoeba');
+
+</script>
+
+</body>
+</html>
