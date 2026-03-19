@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #f8f9fa; margin: 0; padding: 20px; }
+        .lab-card { background: white; border-radius: 15px; padding: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .specimen-img { width: 100%; max-width: 400px; border-radius: 10px; cursor: crosshair; }
+        .label-btn { 
+            background: #e74c3c; color: white; border: none; padding: 5px 10px; 
+            border-radius: 20px; font-size: 12px; margin: 5px; cursor: pointer;
+        }
+        #info-box { 
+            margin-top: 20px; padding: 15px; background: #34495e; 
+            color: white; border-radius: 10px; display: none; min-height: 50px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="lab-card">
+    <h2>🔬 Digital Zoology Lab</h2>
+    <p>Topic: <b>The Human Heart</b></p>
+    
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Diagram_of_the_human_heart_%28cropped%29.svg/640px-Diagram_of_the_human_heart_%28cropped%29.svg.png" class="specimen-img">
+
+    <div id="controls">
+        <button class="label-btn" onclick="showInfo('Aorta', 'The main artery of the body, supplying oxygenated blood to the circulatory system.')">Aorta</button>
+        <button class="label-btn" onclick="showInfo('Left Ventricle', 'It pumps oxygenated blood to tissues all over the body.')">Left Ventricle</button>
+        <button class="label-btn" onclick="showInfo('Right Atrium', 'It receives deoxygenated blood from the body and pumps it into the right ventricle.')">Right Atrium</button>
+    </div>
+
+    <div id="info-box"></div>
+</div>
+
+<script>
+    function showInfo(part, detail) {
+        const box = document.getElementById('info-box');
+        box.style.display = 'block';
+        box.innerHTML = `<strong>${part}:</strong><br>${detail}`;
+        
+        // Android Vibration effect (Agar Sketchware support kare)
+        if (window.navigator.vibrate) {
+            window.navigator.vibrate(50);
+        }
+    }
+</script>
+
+</body>
+</html>
