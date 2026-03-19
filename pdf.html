@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Assignment Maker</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #e9ecef; margin: 0; }
+        .container { background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
+        h2 { color: #2c3e50; text-align: center; margin-top: 0; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        
+        label { font-weight: bold; color: #34495e; display: block; margin-top: 15px; }
+        input, textarea { width: 100%; margin-top: 5px; padding: 12px; border-radius: 6px; border: 1px solid #bdc3c7; box-sizing: border-box; font-size: 14px; }
+        textarea { height: 130px; resize: vertical; }
+        
+        button { background: #27ae60; color: white; padding: 15px; border: none; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 25px; transition: 0.3s; }
+        button:hover { background: #2ecc71; }
+        
+        canvas { display: none; } /* QR code screen par nahi dikhega, seedha PDF mein jayega */
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Smart Assignment Maker</h2>
+        
+        <label>📚 Topic Name (Chapter/Subject):</label>
+        <input type="text" id="topic" placeholder="e.g. Cell Division - Class 11">
+        
+        <label>📝 Questions (Ek line mein ek question likhein):</label>
+        <textarea id="questions" placeholder="What is Mitosis?&#10;Explain the phases of Meiosis?&#10;Draw a plant cell."></textarea>
+        
+        <label>🔗 Answer Key Link (Is link ka QR banega):</label>
+        <input type="url" id="ansLink" placeholder="e.g. https://yoursite.com/answers">
+        
+        <button onclick="generatePDF()">📥 Generate & Download PDF</button>
+    </div>
+
+    <canvas id="qrCanvas"></canvas>
+
+    <script>
+        function generatePDF() {
+            // 1. Form ka data uthana
+            const topic = document.getElementById('topic').value || "School Assignment";
+            const quesText = document.getElementById('questions').value;
+            const ansLink = document.getElementById('ansLink').value || "https://google.com";
+            
+            if(!quesText.trim()) {
+                alert("Please questions toh likhiye!");
+                return;
+            }
+
+            // 2. QR Code Canvas par draw karna
+            const qrCanvas = document.getElementById('qrCanvas');
+            const qr = new QRious({
+                element: qrCanvas,
+                value: ansLink,
+                size: 150 // QR code ki size
+            });
+            const qrDataURL = qrCanvas.toDataURL("image/jpeg");
+
+            // 3. PDF Taiyar karna shuru
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // PDF Header Styling
+            doc.setFontSize(22);
+            doc.setTextColor(41, 128, 185); // Blue color for header
+            doc.text(topic, 105, 20, null, null, 'center');
+            
+            doc.setLineWidth(0.5);
+            doc.setDrawColor(200, 200, 200);
+            doc.line(20, 28, 190, 28); // Line under header
+
+            // Questions likhna
+            doc.setFontSize(14);
+            doc.setTextColor(40, 40, 40);
+            let y = 40;
+            const questionsList = quesText.split('\n');
+            
+            let qNum = 1;
+            questionsList.forEach((q) => {
+                if(q.trim() !== "") {
+                    // Agar text lamba ho toh auto-wrap ho jayega
+                    var splitTitle = doc.splitTextToSize(qNum + ". " + q, 170);
+                    doc.text(splitTitle, 20, y);
+                    y += (10 * splitTitle.length); // Next line ke liye gap
+                    qNum++;
+                    
+                    // Naya page add karna agar page bhar jaye
+                    if (y > 250) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                }
+            });
+
+            // 4. QR Code PDF mein add karna
+            y += 10;
+            if(y > 220) { doc.addPage(); y = 20; } // Space kam ho toh next page par QR
+
+            doc.setFontSize(12);
+            doc.setTextColor(100, 100, 100);
+            doc.text("Scan for Answer Key / Extra Notes:", 20, y);
+            
+            // Image add karna (Base64 data, format, x, y, width, height)
+            doc.addImage(qrDataURL, 'JPEG', 20, y + 5, 35, 35);
+
+            // PDF Footer
+            doc.setFontSize(10);
+            doc.text("Generated via Riyaz Sir's Smart App", 105, 285, null, null, 'center');
+
+            // 5. Final Download
+            doc.save(`${topic.replace(/\s+/g, '_')}_Assignment.pdf`);
+        }
+    </script>
+
+</body>
+</html>
