@@ -1,48 +1,100 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Digital Zoology Lab</title>
+    
     <style>
-        body { font-family: sans-serif; text-align: center; background: #f8f9fa; margin: 0; padding: 20px; }
-        .lab-card { background: white; border-radius: 15px; padding: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        .specimen-img { width: 100%; max-width: 400px; border-radius: 10px; cursor: crosshair; }
-        .label-btn { 
-            background: #e74c3c; color: white; border: none; padding: 5px 10px; 
-            border-radius: 20px; font-size: 12px; margin: 5px; cursor: pointer;
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 15px; background: #e9ecef; color: #333; -webkit-font-smoothing: antialiased; }
+        
+        .lab-card { background: #fff; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); padding: 20px; max-width: 500px; margin: auto; }
+        h1 { margin-top: 0; font-size: 1.5rem; color: #2c3e50; text-align: center; }
+        p { color: #7f8c8d; text-align: center; font-size: 14px; margin-bottom: 20px; }
+        
+        /* Image Container */
+        .image-container { position: relative; text-align: center; margin-bottom: 20px; }
+        .specimen-img { width: 100%; max-width: 380px; height: auto; border-radius: 12px; }
+        
+        /* Label Buttons (Pulsing style) */
+        .part-dot {
+            position: absolute; width: 18px; height: 18px; 
+            background: #e74c3c; border-radius: 50%; border: 2px solid white;
+            box-shadow: 0 0 10px rgba(231,76,60,0.5); cursor: pointer;
+            animation: pulse 1.5s infinite;
         }
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(231,76,60,0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(231,76,60,0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(231,76,60,0); }
+        }
+        
+        /* Specific label positions (In Percentage for responsiveness) */
+        #dot-aorta { top: 15%; left: 55%; }
+        #dot-la { top: 38%; left: 60%; }
+        #dot-lv { top: 60%; left: 63%; }
+        #dot-ra { top: 35%; left: 30%; }
+        #dot-rv { top: 58%; left: 33%; }
+        
+        /* Info Box */
         #info-box { 
-            margin-top: 20px; padding: 15px; background: #34495e; 
-            color: white; border-radius: 10px; display: none; min-height: 50px;
+            background: #34495e; color: white; border-radius: 12px; 
+            padding: 20px; display: none; margin-top: 15px; position: relative;
         }
+        #info-title { margin-top: 0; font-size: 18px; color: #3498db; }
+        #info-text { margin: 0; font-size: 15px; line-height: 1.5; }
+        .close-btn { position: absolute; top: 10px; right: 15px; font-size: 20px; color: #fff; cursor: pointer; }
+
     </style>
 </head>
 <body>
 
 <div class="lab-card">
-    <h2>🔬 Digital Zoology Lab</h2>
-    <p>Topic: <b>The Human Heart</b></p>
+    <h1>🔬 Digital Biology Lab</h1>
+    <p>Tap the <span style="color:#e74c3c;">🔴 dots</span> on the <b>Human Heart</b> to learn.</p>
     
-    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Diagram_of_the_human_heart_%28cropped%29.svg/640px-Diagram_of_the_human_heart_%28cropped%29.svg.png" class="specimen-img">
-
-    <div id="controls">
-        <button class="label-btn" onclick="showInfo('Aorta', 'The main artery of the body, supplying oxygenated blood to the circulatory system.')">Aorta</button>
-        <button class="label-btn" onclick="showInfo('Left Ventricle', 'It pumps oxygenated blood to tissues all over the body.')">Left Ventricle</button>
-        <button class="label-btn" onclick="showInfo('Right Atrium', 'It receives deoxygenated blood from the body and pumps it into the right ventricle.')">Right Atrium</button>
+    <div class="image-container">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/e/e5/Diagram_of_the_human_heart_%28cropped%29.svg" class="specimen-img" alt="Human Heart Diagram">
+        
+        <div id="dot-aorta" class="part-dot" onclick="showPart('Aorta')"></div>
+        <div id="dot-la" class="part-dot" onclick="showPart('Left Atrium')"></div>
+        <div id="dot-lv" class="part-dot" onclick="showPart('Left Ventricle')"></div>
+        <div id="dot-ra" class="part-dot" onclick="showPart('Right Atrium')"></div>
+        <div id="dot-rv" class="part-dot" onclick="showPart('Right Ventricle')"></div>
     </div>
 
-    <div id="info-box"></div>
+    <div id="info-box">
+        <span class="close-btn" onclick="closeInfo()">&times;</span>
+        <h3 id="info-title">Part Name</h3>
+        <p id="info-text">Function details go here.</p>
+    </div>
 </div>
 
 <script>
-    function showInfo(part, detail) {
+    // Part Data (Easy to update later)
+    const heartParts = {
+        'Aorta': 'The main artery of the body, supplying oxygenated blood to the circulatory system.',
+        'Left Atrium': 'Receives oxygen-rich blood from the lungs and pumps it into the left ventricle.',
+        'Left Ventricle': 'Pumps oxygenated blood to tissues all over the body.',
+        'Right Atrium': 'Receives deoxygenated blood from the body and pumps it into the right ventricle.',
+        'Right Ventricle': 'Pumps deoxygenated blood to the lungs.'
+    };
+
+    function showPart(partName) {
+        const title = document.getElementById('info-title');
+        const text = document.getElementById('info-text');
         const box = document.getElementById('info-box');
-        box.style.display = 'block';
-        box.innerHTML = `<strong>${part}:</strong><br>${detail}`;
         
-        // Android Vibration effect (Agar Sketchware support kare)
-        if (window.navigator.vibrate) {
-            window.navigator.vibrate(50);
-        }
+        // Android Vibration (Optional success check)
+        if (navigator.vibrate) { navigator.vibrate(40); }
+
+        title.innerText = partName;
+        text.innerText = heartParts[partName];
+        box.style.display = 'block';
+    }
+
+    function closeInfo() {
+        document.getElementById('info-box').style.display = 'none';
     }
 </script>
 
